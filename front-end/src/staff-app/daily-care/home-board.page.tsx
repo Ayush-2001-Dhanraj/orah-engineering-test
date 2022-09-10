@@ -11,10 +11,12 @@ import { StudentListTile } from "staff-app/components/student-list-tile/student-
 import { ActiveRollOverlay, ActiveRollAction } from "staff-app/components/active-roll-overlay/active-roll-overlay.component"
 import { ToggleButton } from "staff-app/components/toggle-button/toggle-button.component"
 import AppContext from "staff-app/AppContext"
+import { RollInput } from "shared/models/roll"
 
 export const HomeBoardPage: React.FC = () => {
   const [isRollMode, setIsRollMode] = useState(false)
   const [getStudents, data, loadState] = useApi<{ students: Person[] }>({ url: "get-homeboard-students" })
+  const [saveRolls, saveRollResp, loadStateSave] = useApi({ url: "save-roll" })
 
   const [studentsData, setStudentsData] = useState<Person[]>([])
 
@@ -26,7 +28,7 @@ export const HomeBoardPage: React.FC = () => {
 
   useEffect(() => {
     void getStudents()
-  }, [getStudents])
+  }, [])
 
   useEffect(() => {
     if (loadState === "loaded" && data && data.students.length > 0) {
@@ -73,9 +75,19 @@ export const HomeBoardPage: React.FC = () => {
     return allStudents.filter((stud: { remark: string }) => stud?.remark === remark)
   }
 
+  const handleStudentDataSave = () => {
+    const student_roll_states = allStudents.map((stud: Person) => {
+      return { student_id: [stud.id][0], roll_state: [stud.remark][0] ? [stud.remark][0] : "unmark" }
+    })
+    void saveRolls({ student_roll_states })
+  }
+
   const onActiveRollAction = (action: ActiveRollAction) => {
     if (action === "exit") {
       setStudentsData(allStudents)
+      setIsRollMode(false)
+    } else if (action === "complete") {
+      handleStudentDataSave()
       setIsRollMode(false)
     } else if (action === "all") {
       setStudentsData(allStudents)
@@ -113,6 +125,13 @@ export const HomeBoardPage: React.FC = () => {
         {loadState === "error" && (
           <CenteredContainer>
             <div>Failed to load</div>
+            <S.Button
+              onClick={() => {
+                void getStudents()
+              }}
+            >
+              Reload
+            </S.Button>
           </CenteredContainer>
         )}
       </S.PageContainer>
@@ -158,6 +177,7 @@ const S = {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
     color: #fff;
     background-color: ${Colors.blue.base};
     padding: 6px 14px;
