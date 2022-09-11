@@ -11,7 +11,6 @@ import { StudentListTile } from "staff-app/components/student-list-tile/student-
 import { ActiveRollOverlay, ActiveRollAction } from "staff-app/components/active-roll-overlay/active-roll-overlay.component"
 import { ToggleButton } from "staff-app/components/toggle-button/toggle-button.component"
 import AppContext from "staff-app/AppContext"
-import { RollInput } from "shared/models/roll"
 
 export const HomeBoardPage: React.FC = () => {
   const [isRollMode, setIsRollMode] = useState(false)
@@ -25,6 +24,50 @@ export const HomeBoardPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>("")
 
   const { allStudents, updateAllStudents } = useContext(AppContext)
+
+  const onToolbarAction = (action: ToolbarAction) => {
+    if (action === "roll") {
+      setSearchTerm("")
+      setSortFor("")
+      setIsAsc(false)
+      setIsRollMode(true)
+    }
+  }
+
+  // Sort array elements
+  const sortByKey = (array: any[] | undefined, key: string) => {
+    return array?.sort(function (a: { [x: string]: any }, b: { [x: string]: any }) {
+      let x = a[key]
+      let y = b[key]
+      return x < y ? -1 : x > y ? 1 : 0
+    })
+  }
+
+  // apply selected filter on remark selected
+  const applyFilter = (remark: string) => {
+    return allStudents.filter((stud: { remark: string }) => stud?.remark === remark)
+  }
+
+  // Save current rolls
+  const handleStudentDataSave = () => {
+    const student_roll_states = allStudents.map((stud: Person) => {
+      return { student_id: [stud.id][0], roll_state: [stud.remark][0] ? [stud.remark][0] : "unmark" }
+    })
+    void saveRolls({ student_roll_states })
+  }
+
+  // handler for roll action - filter/save/close
+  const onActiveRollAction = (action: ActiveRollAction) => {
+    if (action === "exit") {
+      setStudentsData(allStudents)
+      setIsRollMode(false)
+    } else if (action === "complete") {
+      handleStudentDataSave()
+      setIsRollMode(false)
+    } else if (action === "all") {
+      setStudentsData(allStudents)
+    } else setStudentsData(applyFilter(action))
+  }
 
   useEffect(() => {
     void getStudents()
@@ -40,23 +83,7 @@ export const HomeBoardPage: React.FC = () => {
     if (allStudents && allStudents.length > 0) setStudentsData(allStudents)
   }, [allStudents])
 
-  const sortByKey = (array: any[] | undefined, key: string) => {
-    return array?.sort(function (a: { [x: string]: any }, b: { [x: string]: any }) {
-      let x = a[key]
-      let y = b[key]
-      return x < y ? -1 : x > y ? 1 : 0
-    })
-  }
-
-  const onToolbarAction = (action: ToolbarAction) => {
-    if (action === "roll") {
-      setSearchTerm("")
-      setSortFor("")
-      setIsAsc(false)
-      setIsRollMode(true)
-    }
-  }
-
+  // Detect change in Filter/Order/Search Term
   useEffect(() => {
     let temp: any = allStudents
     if (searchTerm.length > 0) {
@@ -71,28 +98,10 @@ export const HomeBoardPage: React.FC = () => {
     setStudentsData([...temp])
   }, [isAsc, sortFor, searchTerm])
 
-  const applyFilter = (remark: string) => {
-    return allStudents.filter((stud: { remark: string }) => stud?.remark === remark)
-  }
-
-  const handleStudentDataSave = () => {
-    const student_roll_states = allStudents.map((stud: Person) => {
-      return { student_id: [stud.id][0], roll_state: [stud.remark][0] ? [stud.remark][0] : "unmark" }
-    })
-    void saveRolls({ student_roll_states })
-  }
-
-  const onActiveRollAction = (action: ActiveRollAction) => {
-    if (action === "exit") {
-      setStudentsData(allStudents)
-      setIsRollMode(false)
-    } else if (action === "complete") {
-      handleStudentDataSave()
-      setIsRollMode(false)
-    } else if (action === "all") {
-      setStudentsData(allStudents)
-    } else setStudentsData(applyFilter(action))
-  }
+  // set students back to its all data once rolls saved
+  useEffect(() => {
+    if (loadStateSave === "loaded") setStudentsData(allStudents)
+  }, [loadStateSave])
 
   return (
     <>
@@ -114,12 +123,18 @@ export const HomeBoardPage: React.FC = () => {
           </CenteredContainer>
         )}
 
-        {loadState === "loaded" && studentsData.length > 0 && (
-          <>
-            {studentsData.map((s, index) => (
-              <StudentListTile key={s.id} isRollMode={isRollMode} student={s} index={index} />
-            ))}
-          </>
+        {loadState === "loaded" &&
+          studentsData.length > 0 &&
+          studentsData.map((s: Person, index: number) => <StudentListTile key={s.id} isRollMode={isRollMode} student={s} index={index} />)}
+
+        {loadState === "loaded" && studentsData.length === 0 && (
+          <S.Button
+            onClick={() => {
+              void getStudents()
+            }}
+          >
+            Reload
+          </S.Button>
         )}
 
         {loadState === "error" && (

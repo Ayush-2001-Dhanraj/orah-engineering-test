@@ -34,12 +34,23 @@ export const AppProvider: React.FC = ({ children }) => {
     setAllStudents(data)
   }
 
+  // Helper func to sort data before updating state
+  const sortByKey = (array: Person[], key: string) => {
+    return array?.sort(function (a: { [x: string]: any }, b: { [x: string]: any }) {
+      let x = a[key]
+      let y = b[key]
+      return x < y ? -1 : x > y ? 1 : 0
+    })
+  }
+
+  // Change remark of one student
   const updateOneStudent = (student: Person, index: number) => {
-    let temp = [...allStudents]
-    temp[index] = student
+    let temp: Person[] = allStudents.filter((stud) => stud.id !== student.id)
+    temp = sortByKey([...temp, student], "id")
     setAllStudents(temp)
   }
 
+  // calculate attendance & update state
   const updateAttendance = () => {
     let present = 0
     let late = 0
@@ -71,10 +82,12 @@ export const AppProvider: React.FC = ({ children }) => {
     ])
   }
 
+  // calculate attendace with studnet change
   useEffect(() => {
     if (allStudents.length > 0) updateAttendance()
   }, [allStudents])
 
+  // @ts-ignore
   return <AppContext.Provider value={{ allStudents, attendence, updateAllStudents, updateOneStudent }}>{children}</AppContext.Provider>
 }
 

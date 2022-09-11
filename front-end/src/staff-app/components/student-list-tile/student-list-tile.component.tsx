@@ -6,7 +6,6 @@ import { Colors } from "shared/styles/colors"
 import { Person, PersonHelper } from "shared/models/person"
 import { RollStateSwitcher } from "staff-app/components/roll-state/roll-state-switcher.component"
 import AppContext from "../../AppContext"
-
 import { RolllStateType } from "../../../shared/models/roll"
 
 interface Props {
@@ -17,9 +16,9 @@ interface Props {
 export const StudentListTile: React.FC<Props> = ({ isRollMode, student, index }) => {
   const { updateOneStudent } = useContext(AppContext)
 
+  // update state in context
   const onStateChange = (remark: RolllStateType) => {
     const temp = { ...student, remark }
-    console.log("sdk newStudent", temp)
     updateOneStudent(temp, index)
   }
 
